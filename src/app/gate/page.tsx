@@ -2,6 +2,26 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
+const Wrap = ({ children }: { children: React.ReactNode }) => (
+  <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 20px", background:"#050506", textAlign:"center", position:"relative", overflow:"hidden", fontFamily:"'Barlow',sans-serif", color:"#EEEEF5" }}>
+    <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(30,30,38,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(30,30,38,0.4) 1px,transparent 1px)", backgroundSize:"40px 40px", pointerEvents:"none" }}/>
+    <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 80% 50% at 50% -10%, rgba(200,150,42,0.08) 0%, transparent 65%)", pointerEvents:"none" }}/>
+    <div style={{ position:"relative", zIndex:1, display:"flex", flexDirection:"column", alignItems:"center", width:"100%", maxWidth:400 }}>{children}</div>
+  </div>
+);
+
+const Circle = ({ color, children }: { color:string; children:React.ReactNode }) => (
+  <div style={{ width:80, height:80, borderRadius:"50%", background:`${color}12`, border:`2px solid ${color}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:34, marginBottom:24 }}>{children}</div>
+);
+
+const Title = ({ children }: { children: React.ReactNode }) => (
+  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:26, fontWeight:900, textTransform:"uppercase", letterSpacing:"0.02em", marginBottom:10 }}>{children}</div>
+);
+
+const Sub = ({ children }: { children: React.ReactNode }) => (
+  <div style={{ fontSize:14, color:"#5A5A70", maxWidth:280, lineHeight:1.7 }}>{children}</div>
+);
+
 function GateContent() {
   const params = useSearchParams();
   const router = useRouter();
@@ -99,26 +119,6 @@ function GateContent() {
     } catch(e:any) { alert(e.message || "Something went wrong"); }
     setSubmitting(false);
   };
-
-  const Wrap = ({ children }: { children: React.ReactNode }) => (
-    <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 20px", background:"#050506", textAlign:"center", position:"relative", overflow:"hidden", fontFamily:"'Barlow',sans-serif", color:"#EEEEF5" }}>
-      <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(30,30,38,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(30,30,38,0.4) 1px,transparent 1px)", backgroundSize:"40px 40px", pointerEvents:"none" }}/>
-      <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 80% 50% at 50% -10%, rgba(200,150,42,0.08) 0%, transparent 65%)", pointerEvents:"none" }}/>
-      <div style={{ position:"relative", zIndex:1, display:"flex", flexDirection:"column", alignItems:"center", width:"100%", maxWidth:400 }}>{children}</div>
-    </div>
-  );
-
-  const Circle = ({ color, children }: { color:string; children:React.ReactNode }) => (
-    <div style={{ width:80, height:80, borderRadius:"50%", background:`${color}12`, border:`2px solid ${color}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:34, marginBottom:24 }}>{children}</div>
-  );
-
-  const Title = ({ children }: { children: React.ReactNode }) => (
-    <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:26, fontWeight:900, textTransform:"uppercase", letterSpacing:"0.02em", marginBottom:10 }}>{children}</div>
-  );
-
-  const Sub = ({ children }: { children: React.ReactNode }) => (
-    <div style={{ fontSize:14, color:"#5A5A70", maxWidth:280, lineHeight:1.7 }}>{children}</div>
-  );
 
   const inp: React.CSSProperties = { width:"100%", padding:"14px", background:"#050506", border:"1px solid #1E1E26", borderRadius:8, color:"#EEEEF5", fontSize:15, fontFamily:"'Barlow',sans-serif", outline:"none", boxSizing:"border-box", WebkitAppearance:"none", transition:"border-color 0.15s" };
   const label: React.CSSProperties = { display:"block", fontSize:11, fontWeight:800, color:"#5A5A70", marginBottom:7, letterSpacing:"0.1em", textTransform:"uppercase", fontFamily:"'Barlow Condensed',sans-serif" };
