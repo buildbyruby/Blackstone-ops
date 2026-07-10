@@ -1,0 +1,126 @@
+/* src/app/globals.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Backgrounds */
+  --bg-base:     #050506;
+  --bg-surface:  #0C0C0F;
+  --bg-elevated: #131318;
+  --bg-card:     #0F0F13;
+  --bg-border:   #1E1E26;
+  --bg-hover:    #16161C;
+
+  /* Text */
+  --text-primary:   #EEEEF5;
+  --text-secondary: #A8A8B8;
+  --text-dim:       #5A5A70;
+  --text-muted:     #2E2E3A;
+
+  /* Gold — signature accent */
+  --gold:      #C8962A;
+  --gold-hi:   #E8B84B;
+  --gold-lo:   #7A5A14;
+  --gold-glow: rgba(200,150,42,0.10);
+  --gold-bg:   rgba(200,150,42,0.07);
+
+  /* Status colors */
+  --green:  #1DB954;
+  --red:    #E53E3E;
+  --blue:   #3B82F6;
+  --orange: #F97316;
+  --purple: #8B5CF6;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Barlow', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 2px; }
+
+/* Font utilities */
+.font-cond {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Gold top border on cards */
+.card-gold-top {
+  position: relative;
+  overflow: hidden;
+}
+.card-gold-top::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold) 0%, transparent 60%);
+}
+
+/* Hexagon logo mark */
+.hex-mark {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: var(--gold);
+}
+
+/* Pulse animations */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200,150,42,0.4); }
+  50%       { box-shadow: 0 0 0 10px rgba(200,150,42,0); }
+}
+@keyframes red-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229,62,62,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(229,62,62,0); }
+}
+@keyframes green-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(29,185,84,0.4); }
+  50%       { box-shadow: 0 0 0 10px rgba(29,185,84,0); }
+}
+@keyframes orange-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.3); }
+  50%       { box-shadow: 0 0 0 14px rgba(249,115,22,0); }
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-glow-pulse   { animation: glow-pulse   2s infinite; }
+.animate-red-pulse    { animation: red-pulse     2s infinite; }
+.animate-green-pulse  { animation: green-pulse   2s infinite; }
+.animate-orange-pulse { animation: orange-pulse  2.5s infinite; }
+.animate-slide-up     { animation: slide-up      0.2s ease; }
+.animate-fade-in      { animation: fade-in       0.18s ease; }
+
+/* Grid background (for hero/login screens) */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(30,30,38,0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30,30,38,0.35) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.grid-bg-sm {
+  background-image:
+    linear-gradient(rgba(30,30,38,0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30,30,38,0.3) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
