@@ -7,6 +7,15 @@ type Product = { id:string; name:string; description:string|null; price:number; 
 type CartItem = Product & { qty:number };
 type Msg = { id:string; from_admin:boolean; body:string; created_at:string };
 
+const ORDER_STATUS_CFG: Record<string,{label:string;color:string;bg:string;step:number}> = {
+  "new":              {label:"Order Placed",    color:"#3B82F6",bg:"rgba(59,130,246,0.1)", step:1},
+  "confirmed":        {label:"Confirmed",       color:"#E8B84B",bg:"rgba(232,184,75,0.1)", step:2},
+  "processing":       {label:"Processing",      color:"#8B5CF6",bg:"rgba(139,92,246,0.1)", step:3},
+  "out-for-delivery": {label:"Out for Delivery",color:"#F97316",bg:"rgba(249,115,22,0.1)", step:4},
+  "delivered":        {label:"Delivered",       color:"#1DB954",bg:"rgba(29,185,84,0.1)", step:5},
+  "cancelled":        {label:"Cancelled",       color:"#E53E3E",bg:"rgba(229,62,62,0.1)", step:0},
+};
+
 export default function StorePage() {
   const router = useRouter();
   const msgEndRef = useRef<HTMLDivElement>(null);
@@ -17,7 +26,8 @@ export default function StorePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
-  const [view, setView] = useState<"store"|"cart"|"checkout"|"confirmed"|"messages">("store");
+  const [view, setView] = useState<"store"|"cart"|"checkout"|"confirmed"|"messages"|"orders">("store");
+  const [orders, setOrders] = useState<any[]>([]);
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
@@ -70,13 +80,15 @@ export default function StorePage() {
 
     setCustomer(cust);
 
-    const [prodRes, msgRes] = await Promise.all([
+    const [prodRes, msgRes, ordRes] = await Promise.all([
       fetch("/api/products"),
-      fetch(`/api/messages?customer_id=${cust.id}`)
+      fetch(`/api/messages?customer_id=${cust.id}`),
+      fetch(`/api/orders?customer_id=${cust.id}`)
     ]);
-    const [prodData, msgData] = await Promise.all([prodRes.json(), msgRes.json()]);
+    const [prodData, msgData, ordData] = await Promise.all([prodRes.json(), msgRes.json(), ordRes.json()]);
     setProducts((Array.isArray(prodData) ? prodData : []).filter((p:Product) => p.is_active));
     if (Array.isArray(msgData)) setMessages(msgData);
+    if (Array.isArray(ordData)) setOrders(ordData);
     setLoading(false);
 
     // Guard: only subscribe once even in React Strict Mode
@@ -116,6 +128,12 @@ export default function StorePage() {
         if (status === "suspended" || status === "store_disabled") {
           redirectToGate();
         }
+      })
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "orders",
+        filter: `customer_id=eq.${cust.id}`
+      }, (payload: any) => {
+        setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
       });
 
     ch.subscribe((status: string) => {
@@ -153,8 +171,15 @@ export default function StorePage() {
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Failed");
-      setPlacedOrder(data); setCart([]); setLocation(""); setNotes(""); setView("confirmed");
-    } catch(e:any) { showToast(e.message || "Failed to place order"); }
+      setPlacedOrder(data); setOrders(prev => [data, ...prev]); setCart([]); setLocation(""); setNotes(""); setView("confirmed");
+    } catch(e:any) {
+      if (e.message && e.message.toLowerCase().includes("not active")) {
+        alert("This store is temporarily closed. You'll be redirected.");
+        redirectToGate();
+        return;
+      }
+      showToast(e.message || "Failed to place order");
+    }
     setPlacing(false);
   };
 
@@ -236,8 +261,8 @@ export default function StorePage() {
       <div style={{fontSize:15,color:"#5A5A70",marginBottom:6}}>We'll call you on {customer?.phone}</div>
       {placedOrder && <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,color:"#E8B84B",marginBottom:32,letterSpacing:"0.06em"}}>{placedOrder.order_ref}</div>}
       <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:340}}>
-        <button style={S.goldBtn()} onClick={()=>{setPlacedOrder(null);setView("store");}}>← Continue Shopping</button>
-        <button style={{...S.goldBtn(),background:"#101014",color:"#A8A8B8",border:"1px solid #1E1E26"}} onClick={()=>setView("messages")}>💬 Message Store</button>
+        <button style={S.goldBtn()} onClick={()=>setView("orders")}>📦 Track Order</button>
+        <button style={{...S.goldBtn(),background:"#101014",color:"#A8A8B8",border:"1px solid #1E1E26"}} onClick={()=>{setPlacedOrder(null);setView("store");}}>← Continue Shopping</button>
       </div>
     </div>
   );
@@ -334,6 +359,49 @@ export default function StorePage() {
       <div style={S.bottomnav}>
         <button style={S.navBtn(false)} onClick={()=>setView("store")}><span style={{fontSize:22}}>🏪</span><span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Store</span></button>
         <button style={S.navBtn(true)}><span style={{fontSize:22}}>🛒</span><span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Cart{itemCount>0?` (${itemCount})`:""}</span></button>
+        <button style={S.navBtn(false)} onClick={()=>setView("orders")}><span style={{fontSize:22}}>📦</span><span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Orders</span></button>
+        <button style={S.navBtn(false)} onClick={()=>setView("messages")}><span style={{fontSize:22,position:"relative"}}>{unread>0&&<span style={{position:"absolute",top:-5,right:-8,width:17,height:17,borderRadius:"50%",background:"#E53E3E",fontSize:9,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</span>}💬</span><span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Messages</span></button>
+      </div>
+    </div>
+  );
+
+  // ── ORDERS (tracking) ──
+  if (view === "orders") return (
+    <div style={{...S.screen,paddingBottom:80}}>
+      <div style={S.topbar}>
+        <button onClick={()=>setView("store")} style={S.backBtn}>←</button>
+        <div style={{flex:1,fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.04em"}}>My Orders</div>
+      </div>
+      <div style={{padding:"16px",maxWidth:520,margin:"0 auto",width:"100%"}}>
+        {orders.length===0 ? (
+          <div style={{textAlign:"center",padding:"80px 20px",color:"#5A5A70"}}>
+            <div style={{fontSize:56,marginBottom:16,opacity:0.15}}>📦</div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,textTransform:"uppercase",letterSpacing:"0.06em"}}>No orders yet</div>
+          </div>
+        ) : orders.map(o=>{
+          const cfg = ORDER_STATUS_CFG[o.status] || ORDER_STATUS_CFG["new"];
+          return (
+            <div key={o.id} style={{background:"#0C0C10",border:"1px solid #1E1E26",borderRadius:14,padding:"16px 18px",marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:"#5A5A70"}}>{o.order_ref}</div>
+                <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",borderRadius:3,fontSize:10,fontWeight:800,letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"'Barlow Condensed',sans-serif",background:cfg.bg,color:cfg.color}}>● {cfg.label}</span>
+              </div>
+              {cfg.step>0 && (
+                <div style={{display:"flex",gap:4,marginBottom:12}}>
+                  {[1,2,3,4,5].map(s=>(
+                    <div key={s} style={{flex:1,height:4,borderRadius:2,background:s<=cfg.step?"#C8962A":"#1E1E26"}}/>
+                  ))}
+                </div>
+              )}
+              <div style={{fontSize:13,color:"#A8A8B8",marginBottom:4}}>{o.location}</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:18,color:"#E8B84B"}}>{fmt(o.total)}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={S.bottomnav}>
+        <button style={S.navBtn(false)} onClick={()=>setView("store")}><span style={{fontSize:22}}>🏪</span><span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Store</span></button>
+        <button style={S.navBtn(true)}><span style={{fontSize:22}}>📦</span><span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Orders</span></button>
         <button style={S.navBtn(false)} onClick={()=>setView("messages")}><span style={{fontSize:22,position:"relative"}}>{unread>0&&<span style={{position:"absolute",top:-5,right:-8,width:17,height:17,borderRadius:"50%",background:"#E53E3E",fontSize:9,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</span>}💬</span><span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Messages</span></button>
       </div>
     </div>
@@ -410,6 +478,10 @@ export default function StorePage() {
         <button style={S.navBtn(false)} onClick={()=>setView("cart")}>
           <span style={{fontSize:22,position:"relative"}}>🛒{itemCount>0&&<span style={{position:"absolute",top:-5,right:-8,width:18,height:18,borderRadius:"50%",background:"#C8962A",fontSize:9,fontWeight:900,color:"#000",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 6px rgba(200,150,42,0.5)"}}>{itemCount}</span>}</span>
           <span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Cart</span>
+        </button>
+        <button style={S.navBtn(false)} onClick={()=>setView("orders")}>
+          <span style={{fontSize:22}}>📦</span>
+          <span style={{fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontFamily:"'Barlow Condensed',sans-serif"}}>Orders</span>
         </button>
         <button style={S.navBtn(false)} onClick={()=>setView("messages")}>
           <span style={{fontSize:22,position:"relative"}}>💬{unread>0&&<span style={{position:"absolute",top:-5,right:-8,width:18,height:18,borderRadius:"50%",background:"#E53E3E",fontSize:9,fontWeight:900,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</span>}</span>

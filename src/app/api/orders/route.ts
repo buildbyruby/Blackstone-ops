@@ -25,6 +25,11 @@ export async function POST(req: Request) {
 
     const supabase = admin();
 
+    const { data: cust, error: custErr } = await supabase.from("customers").select("status").eq("id", customer_id).single();
+    if (custErr || !cust || cust.status !== "active") {
+      return NextResponse.json({ error: "Your account is not active. Please refresh." }, { status: 403 });
+    }
+
     const { data: order, error: orderErr } = await supabase
       .from("orders")
       .insert({ customer_id, location, notes: notes || null, total, status: "new" })
