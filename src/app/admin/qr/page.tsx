@@ -180,7 +180,7 @@ export default function QRPage() {
                 <div style={{ fontSize: 13, color: "#E53E3E", fontWeight: 700, marginBottom: 4 }}>Old QR code is invalidated immediately.</div>
                 <div style={{ fontSize: 12, color: "#A8A8B8", lineHeight: 1.7 }}>Anyone with the old link can no longer scan in. You must reshare the new code.</div>
               </div>
-              <div style={{ fontSize: 12, color: "#5A5A70" }}>Existing approved customers <span style={{ color: "#1DB954", fontWeight: 700 }}>are not affected.</span></div>
+              <div style={{ fontSize: 12, color: "#5A5A70" }}>Existing approved customers <span style={{ color: "#E53E3E", fontWeight: 700 }}>will be logged out and must be re-approved.</span></div>
             </div>
             <div style={{ padding: "14px 22px", borderTop: "1px solid #1E1E26", display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button style={{ ...S.btn, background: "#131318", color: "#A8A8B8", border: "1px solid #1E1E26" }} onClick={() => setConfirmOpen(false)}>Cancel</button>

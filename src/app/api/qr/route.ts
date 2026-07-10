@@ -26,6 +26,14 @@ export async function POST(req: Request) {
       const newToken = "bst_" + Array.from(arr).map(b => chars[b % chars.length]).join("");
       const { error } = await supabase.from("settings").update({ value: newToken }).eq("key", "qr_token");
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+      // Kick out everyone currently approved — they must re-request access with the new code
+      const { error: kickErr } = await supabase
+        .from("customers")
+        .update({ status: "pending" })
+        .eq("status", "active");
+      if (kickErr) console.error("Kick-out on regenerate failed:", kickErr.message);
+
       return NextResponse.json({ token: newToken });
     }
 

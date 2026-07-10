@@ -125,7 +125,7 @@ export default function StorePage() {
         filter: `id=eq.${cust.id}`
       }, (payload: any) => {
         const status = payload.new.status;
-        if (status === "suspended" || status === "store_disabled") {
+        if (status === "suspended" || status === "store_disabled" || status === "pending") {
           redirectToGate();
         }
       })
@@ -170,10 +170,19 @@ export default function StorePage() {
         body: JSON.stringify({ customer_id:customer.id, location:location.trim(), notes:notes.trim()||null, total, items:cart.map(c=>({product_id:c.id,name:c.name,price:c.price,quantity:c.qty})) })
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Failed");
+      if (!res.ok || data.error) {
+        const err: any = new Error(data.error || "Failed");
+        err.accountStatus = data.status;
+        throw err;
+      }
       setPlacedOrder(data); setOrders(prev => [data, ...prev]); setCart([]); setLocation(""); setNotes(""); setView("confirmed");
     } catch(e:any) {
-      if (e.message && e.message.toLowerCase().includes("not active")) {
+      if (e.accountStatus === "pending") {
+        alert("Your access code is no longer valid — you'll need to request access again and wait for approval.");
+        redirectToGate();
+        return;
+      }
+      if (e.accountStatus === "suspended" || e.accountStatus === "store_disabled") {
         alert("This store is temporarily closed. You'll be redirected.");
         redirectToGate();
         return;

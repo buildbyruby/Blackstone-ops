@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     const { data: cust, error: custErr } = await supabase.from("customers").select("status").eq("id", customer_id).single();
     if (custErr || !cust || cust.status !== "active") {
-      return NextResponse.json({ error: "Your account is not active. Please refresh." }, { status: 403 });
+      return NextResponse.json({ error: "Your account is not active. Please refresh.", status: cust?.status || "unknown" }, { status: 403 });
     }
 
     const { data: order, error: orderErr } = await supabase
