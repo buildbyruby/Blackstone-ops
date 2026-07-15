@@ -203,7 +203,7 @@ export default function StorePage() {
             </div>
 
             {/* I've Paid button — only show if after_delivery and not yet submitted/paid */}
-            {o.payment_timing==="after_delivery" && (o.payment_status==="unpaid"||o.payment_status==="partial") && ["confirmed","processing","out-for-delivery","delivered"].includes(o.status) && (
+            {o.payment_timing==="after_delivery" && (o.payment_status==="unpaid"||o.payment_status==="partial") && o.status !== "new" && o.status !== "cancelled" && (
               <button onClick={()=>submitPayment(o.id)} disabled={submittingPay===o.id}
                 style={{width:"100%",padding:"12px",background:submittingPay===o.id?"#1A1408":"#C8962A",color:submittingPay===o.id?"#4A3810":"#000",border:"none",borderRadius:8,fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.06em",cursor:submittingPay===o.id?"not-allowed":"pointer"}}>
                 {submittingPay===o.id?"Submitting…":"✓ I've Paid — Submit for Confirmation"}
