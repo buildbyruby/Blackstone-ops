@@ -127,14 +127,43 @@ export default function StorePage() {
   const submitPayment = async (orderId: string) => {
     if (!customer) return;
     setSubmittingPay(orderId);
-    const res = await fetch("/api/payments",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"submit_payment",order_id:orderId,customer_id:customer.id})});
-    const data = await res.json();
-    if (!res.ok||data.error) { showToast(data.error||"Failed"); setSubmittingPay(null); return; }
-    showToast("✓ Payment submitted — awaiting confirmation");
-    await loadOrders();
-    const balRes = await fetch(`/api/balances?customer_id=${customer.id}`);
-    const balData = await balRes.json();
-    setBalance(balData.balance_due||0);
+    try {
+      console.log("Submitting payment for order:", orderId, "customer:", customer.id);
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "submit_payment",
+          order_id: orderId,
+          customer_id: customer.id
+        })
+      });
+      const text = await res.text();
+      console.log("Payment response:", res.status, text);
+      let data: any = {};
+      try { data = JSON.parse(text); } catch {}
+      if (!res.ok || data.error) {
+        showToast("❌ " + (data.error || "Failed to submit"));
+        setSubmittingPay(null);
+        return;
+      }
+      showToast("✓ Sent! Waiting for store to confirm");
+      // Refresh orders immediately
+      const phone = localStorage.getItem("bst_phone");
+      if (phone) {
+        const custRes = await fetch(`/api/customers?phone=${encodeURIComponent(phone)}`);
+        const custData = await custRes.json();
+        const cust = custData?.[0];
+        if (cust) {
+          const ordRes = await fetch(`/api/orders?customer_id=${cust.id}`);
+          const ordData = await ordRes.json();
+          if (Array.isArray(ordData)) setOrders(ordData);
+        }
+      }
+    } catch (e: any) {
+      console.log("submitPayment error:", e);
+      showToast("❌ Network error — try again");
+    }
     setSubmittingPay(null);
   };
 

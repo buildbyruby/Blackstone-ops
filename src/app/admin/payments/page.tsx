@@ -38,8 +38,8 @@ export default function PaymentsPage() {
 
   const pay = async (order: Order, action: "confirm"|"full"|"reject", amount?: number) => {
     setSaving(order.id);
-    const body: any = { action: action==="reject" ? "reject_payment" : "confirm_payment", order_id: order.id, customer_id: order.customer_id };
-    if (action==="full") body.amount = order.total - (order.amount_paid||0);
+    const body: any = { action: action==="reject" ? "reject_payment" : action==="full" ? "full_payment" : "confirm_payment", order_id: order.id, customer_id: order.customer_id };
+    // full_payment uses amount param
     if (action==="confirm") body.amount = order.total - (order.amount_paid||0);
     if (amount) body.amount = amount;
     const res = await api("/api/payments", { method:"POST", body:JSON.stringify(body) });
