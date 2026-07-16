@@ -84,7 +84,7 @@ export default function CustomersPage() {
             </div>
           </div>
         ) : shown.map((c:any, i:number) => (
-          <div key={c.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 18px", borderBottom:i<shown.length-1?"1px solid rgba(30,30,38,0.5)":"none", flexWrap:"wrap", gap:12 }}>
+          <div key={c.id} style={{ display:"flex", alignItems:"center", padding:"14px 18px", borderBottom:i<shown.length-1?"1px solid rgba(30,30,38,0.5)":"none", flexWrap:"wrap", gap:12 }}>
             {/* Avatar */}
             <div style={{ width:40, height:40, borderRadius:"50%", background:c.status==="pending"?"#F97316":c.status==="suspended"?"#E53E3E":"#C8962A", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:900, color:"#000", fontFamily:"'Barlow Condensed',sans-serif", flexShrink:0 }}>
               {c.name.charAt(0).toUpperCase()}

@@ -18,10 +18,13 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { customer_id, location, notes, items, total } = body;
+    const { customer_id, location, notes, items, total, payment_timing } = body;
     if (!customer_id || !location || !items?.length) {
       return NextResponse.json({ error: "customer_id, location, items required" }, { status: 400 });
     }
+    const timing = ["before_delivery", "upon_delivery", "after_delivery"].includes(payment_timing)
+      ? payment_timing
+      : "upon_delivery";
 
     const supabase = admin();
 
@@ -32,7 +35,16 @@ export async function POST(req: Request) {
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
-      .insert({ customer_id, location, notes: notes || null, total, status: "new" })
+      .insert({
+        customer_id,
+        location,
+        notes: notes || null,
+        total,
+        status: "new",
+        payment_timing: timing,
+        payment_status: "unpaid",
+        amount_paid: 0,
+      })
       .select()
       .single();
     if (orderErr) return NextResponse.json({ error: orderErr.message }, { status: 500 });

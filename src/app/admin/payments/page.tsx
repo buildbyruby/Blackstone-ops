@@ -38,10 +38,10 @@ export default function PaymentsPage() {
 
   const pay = async (order: Order, action: "confirm"|"full"|"reject", amount?: number) => {
     setSaving(order.id);
-    const body: any = { action: action==="reject" ? "reject_payment" : action==="full" ? "full_payment" : "confirm_payment", order_id: order.id, customer_id: order.customer_id };
-    // full_payment uses amount param
-    if (action==="confirm") body.amount = order.total - (order.amount_paid||0);
-    if (amount) body.amount = amount;
+    const balance = order.total - (order.amount_paid||0);
+    const body: any = { action: action==="reject" ? "reject_payment" : action==="full" ? "record_payment" : "confirm_payment", order_id: order.id, customer_id: order.customer_id };
+    if (action==="confirm") body.amount = balance;
+    if (action==="full") body.amount = amount || balance;
     const res = await api("/api/payments", { method:"POST", body:JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok||data.error) { toast.error(data.error||"Failed"); setSaving(null); return; }
