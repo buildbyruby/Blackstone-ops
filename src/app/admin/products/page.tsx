@@ -236,7 +236,7 @@ export default function ProductsPage() {
                 <input style={INP} value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="e.g. Wagyu Burger"
                   onFocus={e=>(e.target.style.borderColor="#C8962A")} onBlur={e=>(e.target.style.borderColor="#1E1E26")} />
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
+              <div className="products-modal-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
                 <div>
                   <label style={LBL}>Price (KES) *</label>
                   <input style={INP} type="number" min="0" step="0.01" value={form.price}

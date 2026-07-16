@@ -89,7 +89,7 @@ export default function OverviewPage() {
         ))}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+      <div className="overview-widgets" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
         {/* Revenue chart */}
         <div style={{background:"#0F0F13",border:"1px solid #1E1E26",borderRadius:12,padding:"18px 20px"}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
@@ -157,7 +157,9 @@ export default function OverviewPage() {
         ) : orders.length===0 ? (
           <div style={{padding:"32px 20px",textAlign:"center",color:"#5A5A70",fontSize:13}}>No orders yet. Share your QR code to get started.</div>
         ) : (
-          <div style={{overflowX:"auto"}}>
+          <>
+          {/* Desktop: full table */}
+          <div className="overview-table-wrap" style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>{["Order","Customer","Total","Status","Time",""].map(h=><th key={h} style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.1em",color:"#5A5A70",padding:"9px 16px",textAlign:"left",borderBottom:"1px solid #1E1E26",fontFamily:"'Barlow Condensed',sans-serif"}}>{h}</th>)}</tr></thead>
               <tbody>
@@ -176,6 +178,25 @@ export default function OverviewPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile: stacked cards */}
+          <div className="overview-mobile-list" style={{display:"none",flexDirection:"column",gap:9,padding:10}}>
+            {orders.slice(0,8).map(o=>(
+              <div key={o.id} onClick={()=>router.push("/admin/orders")} style={{background:"#050506",border:"1px solid #1E1E26",borderRadius:8,padding:"12px 14px",cursor:"pointer"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:"#E8B84B",fontWeight:700}}>{o.order_ref}</span>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"2px 8px",borderRadius:2,fontSize:10,fontWeight:800,letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:"'Barlow Condensed',sans-serif",background:(STATUS_COLOR[o.status]||"#A8A8B8")+"18",color:STATUS_COLOR[o.status]||"#A8A8B8"}}>● {STATUS_LABEL[o.status]||o.status}</span>
+                </div>
+                <div style={{fontSize:13,fontWeight:700}}>{o.customers?.name||"—"}</div>
+                <div style={{fontSize:11,color:"#5A5A70",marginBottom:8}}>{o.customers?.phone||""}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,borderTop:"1px solid #1E1E26"}}>
+                  <span style={{fontSize:11,color:"#5A5A70"}}>{timeAgo(o.created_at)}</span>
+                  <span style={{fontSize:13,fontWeight:700}}>{fmt(o.total)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
     </div>

@@ -94,7 +94,9 @@ export default function OrdersPage() {
             <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,textTransform:"uppercase",letterSpacing:"0.06em"}}>No orders {filter!=="all"?`with status "${STATUS_CFG[filter as Status]?.label}"`:""}</div>
           </div>
         ) : (
-          <div style={{overflowX:"auto"}}>
+          <>
+          {/* Desktop: full table */}
+          <div className="orders-table-wrap" style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr>{["Order","Customer","Location","Total","Status","Time",""].map(h=>(
@@ -121,6 +123,26 @@ export default function OrdersPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile: stacked cards — every field visible, zero horizontal scroll */}
+          <div className="orders-mobile-list" style={{display:"none",flexDirection:"column",gap:10,padding:"4px 4px 4px"}}>
+            {filtered.map(o=>(
+              <div key={o.id} onClick={()=>setSelected(o)} style={{background:"#0F0F13",border:"1px solid #1E1E26",borderRadius:10,padding:"14px 16px",cursor:"pointer"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:"#E8B84B",fontWeight:700}}>{o.order_ref}</div>
+                  <Badge status={o.status}/>
+                </div>
+                <div style={{fontSize:14,fontWeight:700,marginBottom:2}}>{o.customers?.name||"—"}</div>
+                <div style={{fontSize:11,color:"#5A5A70",marginBottom:8}}>{o.customers?.phone||""}</div>
+                <div style={{fontSize:12,color:"#A8A8B8",marginBottom:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📍 {o.location}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,borderTop:"1px solid #1E1E26"}}>
+                  <span style={{fontSize:11,color:"#5A5A70"}}>{timeAgo(o.created_at)}</span>
+                  <span style={{fontSize:14,fontWeight:900,fontFamily:"'Barlow Condensed',sans-serif"}}>{fmt(o.total)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
 

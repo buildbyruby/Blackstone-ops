@@ -72,7 +72,7 @@ export default function MessagesPage() {
         <div style={{fontSize:12,color:"#5A5A70",marginTop:3}}>Real-time 1-1 chat with your customers</div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"240px 1fr",height:"calc(100vh - 180px)",border:"1px solid #1E1E26",borderRadius:12,overflow:"hidden"}}>
+      <div className="messages-shell" style={{display:"grid",gridTemplateColumns:"240px 1fr",height:"calc(100vh - 180px)",border:"1px solid #1E1E26",borderRadius:12,overflow:"hidden"}}>
         {/* Contacts sidebar */}
         <div style={{background:"#0C0C0F",borderRight:"1px solid #1E1E26",overflowY:"auto",display:"flex",flexDirection:"column"}}>
           <div style={{padding:"12px 14px",borderBottom:"1px solid #1E1E26",fontSize:10,fontWeight:800,color:"#5A5A70",textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'Barlow Condensed',sans-serif"}}>

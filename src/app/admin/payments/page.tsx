@@ -20,6 +20,7 @@ export default function PaymentsPage() {
   const [partialModal, setPartialModal] = useState<Order|null>(null);
   const [partialAmt, setPartialAmt] = useState("");
   const [saving, setSaving] = useState<string|null>(null);
+  const [mobileTab, setMobileTab] = useState<"awaiting"|"pending">("awaiting");
 
   useEffect(() => {
     load();
@@ -155,9 +156,19 @@ export default function PaymentsPage() {
       {loading ? (
         <div style={{ color:"#5A5A70", fontFamily:"'Barlow Condensed',sans-serif", textTransform:"uppercase", letterSpacing:"0.1em" }}>Loading…</div>
       ) : (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
+        <>
+          {/* Mobile-only tab switcher — avoids scrolling past a long Awaiting list to reach Pending */}
+          <div className="payments-mobile-tabs" style={{ display:"none", gap:8, marginBottom:16 }}>
+            <button onClick={()=>setMobileTab("awaiting")} style={{ flex:1, padding:"10px 8px", borderRadius:8, border:"1px solid #1E1E26", background:mobileTab==="awaiting"?"rgba(200,150,42,0.12)":"#0C0C0F", color:mobileTab==="awaiting"?"#E8B84B":"#5A5A70", fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, fontWeight:900, textTransform:"uppercase", letterSpacing:"0.04em", cursor:"pointer" }}>
+              ⏳ Awaiting {submitted.length}
+            </button>
+            <button onClick={()=>setMobileTab("pending")} style={{ flex:1, padding:"10px 8px", borderRadius:8, border:"1px solid #1E1E26", background:mobileTab==="pending"?"rgba(229,62,62,0.1)":"#0C0C0F", color:mobileTab==="pending"?"#E53E3E":"#5A5A70", fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, fontWeight:900, textTransform:"uppercase", letterSpacing:"0.04em", cursor:"pointer" }}>
+              ⚠ Pending {unpaid.length}
+            </button>
+          </div>
+        <div className="payments-columns" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
           {/* LEFT: Customer submitted payment claims */}
-          <div>
+          <div className={mobileTab==="awaiting" ? "payments-mobile-visible" : "payments-mobile-hidden"}>
             <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:900, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
               <span style={{ color:"#E8B84B" }}>⏳ Awaiting Your Confirmation</span>
               <span style={{ background:"rgba(200,150,42,0.15)", color:"#E8B84B", padding:"2px 9px", borderRadius:10, fontSize:11, fontWeight:900 }}>{submitted.length}</span>
@@ -172,7 +183,7 @@ export default function PaymentsPage() {
           </div>
 
           {/* RIGHT: Unpaid / needs payment recorded */}
-          <div>
+          <div className={mobileTab==="pending" ? "payments-mobile-visible" : "payments-mobile-hidden"}>
             <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:900, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
               <span style={{ color:"#E53E3E" }}>⚠ Pending Payments</span>
               <span style={{ background:"rgba(229,62,62,0.12)", color:"#E53E3E", padding:"2px 9px", borderRadius:10, fontSize:11, fontWeight:900 }}>{unpaid.length}</span>
@@ -185,6 +196,7 @@ export default function PaymentsPage() {
             ) : unpaid.map(o=><Card key={o.id} o={o} />)}
           </div>
         </div>
+        </>
       )}
 
       {/* Partial payment modal — minimal */}
