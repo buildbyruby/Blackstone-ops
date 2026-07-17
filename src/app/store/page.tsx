@@ -24,12 +24,15 @@ const isOfferActive = (p: Product): boolean => {
   return true;
 };
 const activePrice = (p: Product): number => isOfferActive(p) ? p.offer_price! : p.price;
+const sortOffersFirst = (arr: Product[]): Product[] =>
+  [...arr].sort((a, b) => (isOfferActive(b) ? 1 : 0) - (isOfferActive(a) ? 1 : 0));
 
 export default function StorePage() {
   const router = useRouter();
   const msgEndRef = useRef<HTMLDivElement>(null);
   const subRef = useRef(false);
   const chRef = useRef<any>(null);
+  const prodPollRef = useRef<any>(null);
 
   const [customer, setCustomer] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -53,7 +56,7 @@ export default function StorePage() {
 
   useEffect(() => {
     init();
-    return () => { if (chRef.current) { try { chRef.current.unsubscribe(); } catch {} chRef.current = null; } subRef.current = false; };
+    return () => { if (chRef.current) { try { chRef.current.unsubscribe(); } catch {} chRef.current = null; } if (prodPollRef.current) { clearInterval(prodPollRef.current); prodPollRef.current = null; } subRef.current = false; };
   }, []);
 
   useEffect(() => { if (view === "messages") { setUnread(0); setTimeout(() => msgEndRef.current?.scrollIntoView({behavior:"smooth"}), 100); } }, [view, messages.length]);
@@ -74,7 +77,7 @@ export default function StorePage() {
       fetch(`/api/balances?customer_id=${cust.id}`),
     ]);
     const [prodData, msgData, balData] = await Promise.all([prodRes.json(), msgRes.json(), balRes.json()]);
-    setProducts((Array.isArray(prodData)?prodData:[]).filter((p:Product)=>p.is_active));
+    setProducts(sortOffersFirst((Array.isArray(prodData)?prodData:[]).filter((p:Product)=>p.is_active)));
     if (Array.isArray(msgData)) setMessages(msgData);
     if (balData?.balance_due) setBalance(balData.balance_due);
     setLoading(false);
@@ -91,10 +94,19 @@ export default function StorePage() {
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders",filter:`customer_id=eq.${cust.id}`},()=>{
         loadOrders(); fetch(`/api/balances?customer_id=${cust.id}`).then(r=>r.json()).then(d=>setBalance(d.balance_due||0));
       })
-      .on("postgres_changes",{event:"*",schema:"public",table:"products"},()=>{
-        fetch("/api/products").then(r=>r.json()).then(d=>setProducts((Array.isArray(d)?d:[]).filter((p:Product)=>p.is_active)));
-      });
+      .on("postgres_changes",{event:"*",schema:"public",table:"products"},()=>{ refreshProducts(); });
     ch.subscribe(); chRef.current = ch;
+
+    // Polling fallback — guarantees offers/stock update live even if the
+    // realtime socket drops or reconnects, no manual reload ever needed.
+    if (prodPollRef.current) clearInterval(prodPollRef.current);
+    prodPollRef.current = setInterval(refreshProducts, 6000);
+  };
+
+  const refreshProducts = () => {
+    fetch("/api/products").then(r=>r.json()).then(d=>{
+      setProducts(sortOffersFirst((Array.isArray(d)?d:[]).filter((p:Product)=>p.is_active)));
+    }).catch(()=>{});
   };
 
   const loadOrders = async () => {
