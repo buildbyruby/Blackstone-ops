@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 const fmt = (n: number) => `KES ${Number(n).toFixed(2)}`;
-type Product = { id:string; name:string; description:string|null; price:number; stock:number; emoji:string; image_url:string|null; is_active:boolean };
+type Product = { id:string; name:string; description:string|null; price:number; stock:number; emoji:string; image_url:string|null; is_active:boolean; offer_price:number|null; offer_label:string|null; offer_expires_at:string|null; };
 type CartItem = Product & { qty:number };
 type Msg = { id:string; from_admin:boolean; body:string; created_at:string };
 type Order = { id:string; order_ref:string; status:string; payment_status:string; payment_timing:string; total:number; amount_paid:number; location:string; notes:string|null; created_at:string; payment_submitted_at:string|null };
@@ -17,6 +17,13 @@ const TIMING_LABEL: Record<string,string> = { before_delivery:"Before Delivery",
 const STATUS_LABEL: Record<string,string>  = { new:"Order Placed", confirmed:"Confirmed", processing:"Being Prepared", "out-for-delivery":"Out for Delivery", delivered:"Delivered", cancelled:"Cancelled" };
 const PAY_LABEL: Record<string,string>     = { unpaid:"Unpaid", submitted:"Awaiting Confirmation", partial:"Partially Paid", paid:"Paid" };
 const PAY_COLOR: Record<string,string>     = { unpaid:"#E53E3E", submitted:"#E8B84B", partial:"#F97316", paid:"#1DB954" };
+
+const isOfferActive = (p: Product): boolean => {
+  if (!p.offer_price) return false;
+  if (p.offer_expires_at && new Date(p.offer_expires_at) < new Date()) return false;
+  return true;
+};
+const activePrice = (p: Product): number => isOfferActive(p) ? p.offer_price! : p.price;
 
 export default function StorePage() {
   const router = useRouter();
@@ -83,6 +90,9 @@ export default function StorePage() {
       })
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"orders",filter:`customer_id=eq.${cust.id}`},()=>{
         loadOrders(); fetch(`/api/balances?customer_id=${cust.id}`).then(r=>r.json()).then(d=>setBalance(d.balance_due||0));
+      })
+      .on("postgres_changes",{event:"*",schema:"public",table:"products"},()=>{
+        fetch("/api/products").then(r=>r.json()).then(d=>setProducts((Array.isArray(d)?d:[]).filter((p:Product)=>p.is_active)));
       });
     ch.subscribe(); chRef.current = ch;
   };
@@ -457,13 +467,24 @@ export default function StorePage() {
             onTouchEnd={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.transition="transform 0.2s";}}>
             <div style={{width:"100%",aspectRatio:"1",background:"#080810",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",position:"relative"}}>
               {p.image_url?<img src={p.image_url} alt={p.name} style={{width:"100%",height:"100%",objectFit:"cover"}} loading="lazy"/>:<span style={{fontSize:54,filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.5))"}}>{p.emoji}</span>}
-              {p.stock<=5&&p.stock>0&&<div style={{position:"absolute",top:8,left:8,background:"rgba(249,115,22,0.92)",color:"#fff",fontSize:9,fontWeight:800,padding:"3px 8px",borderRadius:4,fontFamily:"'Barlow Condensed',sans-serif"}}>LOW STOCK</div>}
+              {isOfferActive(p) && <div style={{position:"absolute",top:0,left:0,background:"#F97316",color:"#fff",fontSize:10,fontWeight:900,padding:"4px 10px",borderRadius:"0 0 8px 0",fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.04em"}}>{p.offer_label||"OFFER"}</div>}
+              {!isOfferActive(p)&&p.stock<=5&&p.stock>0&&<div style={{position:"absolute",top:8,left:8,background:"rgba(249,115,22,0.92)",color:"#fff",fontSize:9,fontWeight:800,padding:"3px 8px",borderRadius:4,fontFamily:"'Barlow Condensed',sans-serif"}}>LOW STOCK</div>}
               {p.stock<=0&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"#E53E3E",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",letterSpacing:"0.08em"}}>Sold Out</div>}
             </div>
             <div style={{padding:"11px 13px 13px"}}>
               <div style={{fontSize:13,fontWeight:700,lineHeight:1.35,marginBottom:5,color:"#EEEEF5"}}>{p.name}</div>
               {p.description&&<div style={{fontSize:11,color:"#5A5A70",lineHeight:1.4,marginBottom:8,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical" as const}}>{p.description}</div>}
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:"#E8B84B",marginBottom:10}}>{fmt(p.price)}</div>
+              {isOfferActive(p) ? (
+                <div style={{marginBottom:10}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:"#F97316"}}>{fmt(p.offer_price!)}</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,color:"#5A5A70",textDecoration:"line-through"}}>{fmt(p.price)}</div>
+                  </div>
+                  <div style={{fontSize:10,color:"#F97316",fontWeight:800,marginTop:2}}>{p.offer_label || `SAVE ${fmt(p.price - p.offer_price!)}`}</div>
+                </div>
+              ) : (
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:"#E8B84B",marginBottom:10}}>{fmt(p.price)}</div>
+              )}
               <button onClick={()=>addToCart(p)} disabled={p.stock<=0} style={{width:"100%",padding:"11px",background:p.stock<=0?"#111116":"#C8962A",color:p.stock<=0?"#2E2E38":"#000",border:p.stock<=0?"1px solid #1A1A20":"none",borderRadius:9,fontFamily:"'Barlow Condensed',sans-serif",fontSize:12,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.06em",cursor:p.stock<=0?"not-allowed":"pointer",WebkitTapHighlightColor:"transparent"}}>
                 {p.stock<=0?"Unavailable":"+ Add to Cart"}
               </button>

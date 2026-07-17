@@ -15,6 +15,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (b.emoji !== undefined) u.emoji = sanitize(b.emoji, 10);
     if (b.image_url !== undefined) u.image_url = sanitize(b.image_url, 500) || null;
     if (b.is_active !== undefined) u.is_active = Boolean(b.is_active);
+    if (b.remove_offer === true) {
+      u.offer_price = null;
+      u.offer_label = null;
+      u.offer_expires_at = null;
+    } else {
+      if (b.offer_price !== undefined) {
+        const op = b.offer_price === null ? null : sanitizeNum(b.offer_price);
+        u.offer_price = op;
+      }
+      if (b.offer_label !== undefined) u.offer_label = b.offer_label ? sanitize(b.offer_label, 50) : null;
+      if (b.offer_expires_at !== undefined) u.offer_expires_at = b.offer_expires_at || null;
+    }
     const { data, error } = await admin().from("products").update(u).eq("id", id).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data);
