@@ -7,8 +7,12 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const phone = searchParams.get("phone");
     let query = admin().from("customers").select("*").order("created_at", { ascending: false });
     if (status) query = query.eq("status", status);
+    if (phone) query = query.eq("phone", phone); // was silently ignored before — caused
+                                                   // an unrelated customer's data to be
+                                                   // returned for any phone lookup
     const { data, error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data);

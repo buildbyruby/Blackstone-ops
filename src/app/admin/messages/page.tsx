@@ -10,6 +10,7 @@ const timeAgo = (d: string) => { const s=Math.floor((Date.now()-new Date(d).getT
 export default function MessagesPage() {
   const supabase = createClient();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
   const [active, setActive] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -17,18 +18,60 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [unread, setUnread] = useState<Record<string,number>>({});
 
+  useEffect(() => { activeRef.current = active; }, [active]);
+
   useEffect(() => { loadCustomers(); }, []);
+
+  // Unread badges are driven from the database's own `read` flag, polled
+  // directly — not from realtime events, which have proven unreliable
+  // elsewhere in this app. This is the source of truth: correct even if
+  // every socket event is missed, and self-corrects every 2s regardless.
+  const loadUnreadCounts = async () => {
+    try {
+      const res = await fetchAdmin("/api/messages/unread-counts");
+      const data = await res.json();
+      if (data.error) return;
+      // Never show unread for whichever chat is currently open on screen
+      if (activeRef.current?.id) delete data[activeRef.current.id];
+      setUnread(data);
+    } catch {}
+  };
+
+  useEffect(() => {
+    loadUnreadCounts();
+    const poll = setInterval(loadUnreadCounts, 2000);
+    return () => clearInterval(poll);
+  }, []);
 
   useEffect(() => {
     if (!active) return;
-    loadMessages(active.id);
-    const ch = supabase.channel(`messages-${active.id}`)
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`customer_id=eq.${active.id}`},(payload)=>{
-        setMessages(prev=>[...prev,payload.new]);
+    const thisCustomerId = active.id; // snapshot — guards against a stale response
+                                       // landing after the user has switched chats
+    loadMessages(thisCustomerId);
+    const ch = supabase.channel(`messages-${thisCustomerId}`)
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`customer_id=eq.${thisCustomerId}`},(payload)=>{
+        if (activeRef.current?.id !== thisCustomerId) return; // stale channel event, ignore
+        setMessages(prev=>prev.find((m:any)=>m.id===payload.new.id)?prev:[...prev,payload.new]);
         setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),50);
       })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+
+    // Polling fallback — same safety net as the customer-side store page,
+    // catches new messages within 2s even if the realtime socket misses one.
+    const poll = setInterval(() => {
+      fetchAdmin(`/api/messages?customer_id=${thisCustomerId}`).then((r:any)=>r.json()).then((d:any)=>{
+        if (activeRef.current?.id !== thisCustomerId) return; // switched chats — discard this response
+        if (!Array.isArray(d)) return;
+        setMessages(prev => {
+          const newOnes = d.filter((m:any) => !prev.find((p:any)=>p.id===m.id));
+          if (newOnes.length === 0) return prev;
+          setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),50);
+          return [...prev, ...newOnes];
+        });
+      }).catch(()=>{});
+    }, 2000);
+
+    return () => { supabase.removeChannel(ch); clearInterval(poll); };
   }, [active?.id]);
 
   useEffect(() => {
@@ -44,6 +87,7 @@ export default function MessagesPage() {
   const loadMessages = async (customerId: string) => {
     const res = await fetchAdmin(`/api/messages?customer_id=${customerId}`);
     const data = await res.json();
+    if (activeRef.current?.id !== customerId) return; // user switched chats before this resolved — discard
     if (Array.isArray(data)) setMessages(data);
     // Mark as read
     await fetchAdmin(`/api/messages?customer_id=${customerId}`, {method:"PATCH"}).catch(()=>{});

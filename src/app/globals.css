@@ -88,11 +88,6 @@ html, body {
   .payments-columns {
     grid-template-columns: 1fr !important;
   }
-  .messages-shell {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: 160px 1fr !important;
-    height: calc(100vh - 220px) !important;
-  }
 }
 
 /* Payments: stack the two columns on mobile instead of squeezing them side by side */
@@ -101,11 +96,6 @@ html, body {
   .payments-columns {
     grid-template-columns: 1fr !important;
   }
-  .messages-shell {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: 160px 1fr !important;
-    height: calc(100vh - 220px) !important;
-  }
 }
 
 /* Payments: stack the two columns on mobile instead of squeezing them side by side */
@@ -113,11 +103,6 @@ html, body {
 @media (max-width: 768px) {
   .payments-columns {
     grid-template-columns: 1fr !important;
-  }
-  .messages-shell {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: 160px 1fr !important;
-    height: calc(100vh - 220px) !important;
   }
 }
 
@@ -173,5 +158,14 @@ html, body {
 @media (max-width: 420px) {
   .products-modal-grid {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* Messages: two-pane (list + chat) on any normal window, phone-sized only stacks */
+@media (max-width: 480px) {
+  .messages-shell {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 160px 1fr !important;
+    height: calc(100vh - 220px) !important;
   }
 }

@@ -33,6 +33,7 @@ export default function StorePage() {
   const subRef = useRef(false);
   const chRef = useRef<any>(null);
   const prodPollRef = useRef<any>(null);
+  const msgPollRef = useRef<any>(null);
 
   const [customer, setCustomer] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -56,7 +57,7 @@ export default function StorePage() {
 
   useEffect(() => {
     init();
-    return () => { if (chRef.current) { try { chRef.current.unsubscribe(); } catch {} chRef.current = null; } if (prodPollRef.current) { clearInterval(prodPollRef.current); prodPollRef.current = null; } subRef.current = false; };
+    return () => { if (chRef.current) { try { chRef.current.unsubscribe(); } catch {} chRef.current = null; } if (prodPollRef.current) { clearInterval(prodPollRef.current); prodPollRef.current = null; } if (msgPollRef.current) { clearInterval(msgPollRef.current); msgPollRef.current = null; } subRef.current = false; };
   }, []);
 
   useEffect(() => { if (view === "messages") { setUnread(0); setTimeout(() => msgEndRef.current?.scrollIntoView({behavior:"smooth"}), 100); } }, [view, messages.length]);
@@ -101,6 +102,24 @@ export default function StorePage() {
     // realtime socket drops or reconnects, no manual reload ever needed.
     if (prodPollRef.current) clearInterval(prodPollRef.current);
     prodPollRef.current = setInterval(refreshProducts, 6000);
+
+    // Same safety net for messages — realtime delivers instantly when it's
+    // working, this catches it within 2s on the rare occasion it doesn't.
+    if (msgPollRef.current) clearInterval(msgPollRef.current);
+    msgPollRef.current = setInterval(() => refreshMessages(cust.id), 2000);
+  };
+
+  const refreshMessages = (customerId: string) => {
+    fetch(`/api/messages?customer_id=${customerId}`).then(r=>r.json()).then(d=>{
+      if (!Array.isArray(d)) return;
+      setMessages(prev => {
+        const newOnes = d.filter((m:Msg) => !prev.find(p=>p.id===m.id));
+        if (newOnes.length === 0) return prev;
+        const incomingAdmin = newOnes.filter((m:Msg)=>m.from_admin);
+        if (incomingAdmin.length) { setUnread(u=>u+incomingAdmin.length); showToast("💬 New message"); }
+        return [...prev, ...newOnes];
+      });
+    }).catch(()=>{});
   };
 
   const refreshProducts = () => {
