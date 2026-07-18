@@ -194,7 +194,7 @@ export default function ProductsPage() {
               <div key={p.id} style={{ background:"#0F0F13", border:`1px solid ${offerOn?"rgba(249,115,22,0.4)":p.is_active?"#1E1E26":"#2A1010"}`, borderRadius:12, overflow:"hidden", opacity:p.is_active?1:0.6, transition:"all 0.15s", position:"relative" }}
                 onMouseEnter={e=>(e.currentTarget.style.borderColor=offerOn?"rgba(249,115,22,0.7)":p.is_active?"#C8962A":"#5A2020")}
                 onMouseLeave={e=>(e.currentTarget.style.borderColor=offerOn?"rgba(249,115,22,0.4)":p.is_active?"#1E1E26":"#2A1010")}>
-                <div style={{ width:"100%", aspectRatio:"16/10", background:"#0A0A0D", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
+                <div style={{ width:"100%", aspectRatio:"4/3", background:"#0A0A0D", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
                   {p.image_url
                     ? <img src={p.image_url} alt={p.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} onError={e=>{(e.target as HTMLImageElement).style.display="none";}}/>
                     : <span style={{ fontSize:52 }}>{p.emoji}</span>
