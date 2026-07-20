@@ -96,6 +96,11 @@ export default function StorePage() {
         loadOrders(); fetch(`/api/balances?customer_id=${cust.id}`).then(r=>r.json()).then(d=>setBalance(d.balance_due||0));
       })
       .on("postgres_changes",{event:"*",schema:"public",table:"products"},()=>{ refreshProducts(); });
+    ch.on("postgres_changes",{event:"DELETE",schema:"public",table:"customers",filter:`id=eq.${cust.id}`},()=>{
+      localStorage.removeItem("bst_phone");
+      localStorage.removeItem("bst_token");
+      router.push("/gate");
+    });
     ch.subscribe(); chRef.current = ch;
 
     // Polling fallback — guarantees offers/stock update live even if the
