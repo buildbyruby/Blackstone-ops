@@ -147,7 +147,7 @@ export default function StorePage() {
 
   const addToCart = (p:Product) => {
     if (p.stock<=0) { showToast("Out of stock"); return; }
-    setCart(prev=>{const ex=prev.find(c=>c.id===p.id);if(ex){if(ex.qty>=p.stock){showToast("Max stock");return prev;}return prev.map(c=>c.id===p.id?{...c,qty:c.qty+1}:c);}return[...prev,{...p,qty:1}];});
+    setCart(prev=>{const ex=prev.find(c=>c.id===p.id);if(ex){if(ex.qty>=p.stock){showToast("Max stock");return prev;}return prev.map(c=>c.id===p.id?{...c,qty:c.qty+1}:c);}return[...prev,{...p,price:activePrice(p),qty:1}];});
     showToast(`✓ ${p.name}`);
   };
   const updateQty=(id:string,d:number)=>setCart(prev=>prev.map(c=>c.id===id?{...c,qty:Math.max(0,c.qty+d)}:c).filter(c=>c.qty>0));
