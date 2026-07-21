@@ -105,7 +105,7 @@ function GateContent() {
       if (data.error === "duplicate phone") {
         const existing = (await (await fetch(`/api/customers?phone=${encodeURIComponent(phone.trim())}`)).json())?.[0];
         if (existing?.status === "active") { localStorage.setItem("bst_phone", phone.trim()); router.push("/store"); return; }
-        if (existing?.status === "suspended") { setStep("suspended"); setSubmitting(false); return; }
+        if (existing?.status === "suspended") { setStep("removed"); setSubmitting(false); return; }
         if (existing?.status === "store_disabled") { setStep("disabled"); setSubmitting(false); return; }
         if (existing?.status === "pending") { setCustomerId(existing.id); localStorage.setItem("bst_phone", phone.trim()); setStep("pending"); setSubmitting(false); return; }
       }
@@ -137,6 +137,14 @@ function GateContent() {
       <Title>Store Closed</Title>
       <Sub>The store is temporarily closed. Please check back later.</Sub>
       <button style={{ marginTop:28, padding:"12px 28px", background:"#131318", color:"#A8A8B8", border:"1px solid #1E1E26", borderRadius:8, fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:900, textTransform:"uppercase", cursor:"pointer", letterSpacing:"0.06em" }} onClick={()=>{ window.location.reload(); }}>Check Again</button>
+    </Wrap>
+  );
+
+  if (step === "removed") return (
+    <Wrap>
+      <Circle color="#E53E3E">🚫</Circle>
+      <Title>Access Removed</Title>
+      <Sub>Your access to this store has been removed. Please contact the store owner and ask them for a new QR code to request access again.</Sub>
     </Wrap>
   );
 
