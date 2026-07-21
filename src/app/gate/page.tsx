@@ -27,7 +27,7 @@ function GateContent() {
   const router = useRouter();
   const token = params.get("token") || "";
 
-  const [step, setStep] = useState<"checking"|"invalid"|"disabled"|"suspended"|"form"|"pending"|"approved">("checking");
+  const [step, setStep] = useState<"checking"|"invalid"|"disabled"|"suspended"|"removed"|"form"|"pending"|"approved">("checking");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
