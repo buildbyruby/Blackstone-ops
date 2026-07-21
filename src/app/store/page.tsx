@@ -69,7 +69,24 @@ export default function StorePage() {
     const res = await fetch(`/api/customers?phone=${encodeURIComponent(phone)}`);
     const data = await res.json();
     const cust = data?.[0];
-    if (!cust || cust.status !== "active") { router.push("/gate"); return; }
+    if (!cust) {
+      localStorage.removeItem("bst_phone");
+      localStorage.removeItem("bst_token");
+      router.push("/gate");
+      return;
+    }
+    if (cust.status === "suspended" || cust.status === "store_disabled") {
+      localStorage.removeItem("bst_phone");
+      localStorage.removeItem("bst_token");
+      router.push("/gate");
+      return;
+    }
+    if (cust.status !== "active") {
+      localStorage.removeItem("bst_phone");
+      localStorage.removeItem("bst_token");
+      router.push("/gate");
+      return;
+    }
     setCustomer(cust);
 
     const [prodRes, msgRes, balRes] = await Promise.all([
@@ -164,6 +181,12 @@ export default function StorePage() {
     try {
       const res = await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({customer_id:customer.id,location:location.trim(),notes:notes.trim()||null,total,payment_timing:payTiming,items:cart.map(c=>({product_id:c.id,name:c.name,price:c.price,quantity:c.qty}))})});
       const data = await res.json();
+      if (res.status===403||res.status===401||(data.error&&(data.error.includes("not found")||data.error.includes("authorized")||data.error.includes("inactive")||data.error.includes("suspended")))) {
+        localStorage.removeItem("bst_phone");
+        localStorage.removeItem("bst_token");
+        router.push("/gate");
+        return;
+      }
       if (!res.ok||data.error) throw new Error(data.error||"Failed");
       setPlacedOrder(data); setCart([]); setLocation(""); setNotes(""); setView("confirmed");
     } catch(e:any){showToast(e.message||"Failed");}
