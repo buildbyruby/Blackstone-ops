@@ -1,7 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
-
-const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+import { NextRequest, NextResponse } from "next/server";
+import { admin, requireAdmin } from "@/lib/api-auth";
 
 export async function GET() {
   try {
@@ -13,11 +11,16 @@ export async function GET() {
   } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action } = body;
     const supabase = admin();
+
+    if (action !== "validate") {
+      const { error: authErr } = await requireAdmin(req);
+      if (authErr) return authErr;
+    }
 
     if (action === "regenerate") {
       const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

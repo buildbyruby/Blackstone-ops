@@ -1,12 +1,16 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { admin, requireAdmin } from "@/lib/api-auth";
 
-const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const customerId = searchParams.get("customer_id");
+
+    if (!customerId) {
+      const { error: authErr } = await requireAdmin(req);
+      if (authErr) return authErr;
+    }
+
     let query = admin().from("orders").select("*, customers(name, phone), order_items(*)").order("created_at", { ascending: false });
     if (customerId) query = query.eq("customer_id", customerId);
     const { data, error } = await query;
