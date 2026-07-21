@@ -34,6 +34,8 @@ export default function StorePage() {
   const chRef = useRef<any>(null);
   const prodPollRef = useRef<any>(null);
   const msgPollRef = useRef<any>(null);
+  const statusPollRef = useRef<any>(null);
+  const [blocked, setBlocked] = useState(false);
 
   const [customer, setCustomer] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -57,11 +59,32 @@ export default function StorePage() {
 
   useEffect(() => {
     init();
-    return () => { if (chRef.current) { try { chRef.current.unsubscribe(); } catch {} chRef.current = null; } if (prodPollRef.current) { clearInterval(prodPollRef.current); prodPollRef.current = null; } if (msgPollRef.current) { clearInterval(msgPollRef.current); msgPollRef.current = null; } subRef.current = false; };
+    return () => { if (chRef.current) { try { chRef.current.unsubscribe(); } catch {} chRef.current = null; } if (prodPollRef.current) { clearInterval(prodPollRef.current); prodPollRef.current = null; } if (msgPollRef.current) { clearInterval(msgPollRef.current); msgPollRef.current = null; } if (statusPollRef.current) { clearInterval(statusPollRef.current); statusPollRef.current = null; } subRef.current = false; };
   }, []);
 
   useEffect(() => { if (view === "messages") { setUnread(0); setTimeout(() => msgEndRef.current?.scrollIntoView({behavior:"smooth"}), 100); } }, [view, messages.length]);
   useEffect(() => { if (view === "orders") loadOrders(); }, [view]);
+
+  const checkStillAllowed = async (): Promise<boolean> => {
+    const phone = localStorage.getItem("bst_phone");
+    if (!phone) return true;
+    try {
+      const res = await fetch(`/api/customers?phone=${encodeURIComponent(phone)}`);
+      const data = await res.json();
+      const cust = data?.[0];
+      if (!cust || cust.status === "suspended" || cust.status === "store_disabled") {
+        if (chRef.current) { try { chRef.current.unsubscribe(); } catch {} chRef.current = null; }
+        if (prodPollRef.current) { clearInterval(prodPollRef.current); prodPollRef.current = null; }
+        if (msgPollRef.current) { clearInterval(msgPollRef.current); msgPollRef.current = null; }
+        if (statusPollRef.current) { clearInterval(statusPollRef.current); statusPollRef.current = null; }
+        localStorage.removeItem("bst_phone");
+        localStorage.removeItem("bst_token");
+        setBlocked(true);
+        return false;
+      }
+      return true;
+    } catch { return true; }
+  };
 
   const init = async () => {
     const phone = localStorage.getItem("bst_phone");
@@ -69,16 +92,10 @@ export default function StorePage() {
     const res = await fetch(`/api/customers?phone=${encodeURIComponent(phone)}`);
     const data = await res.json();
     const cust = data?.[0];
-    if (!cust) {
+    if (!cust || cust.status === "suspended" || cust.status === "store_disabled") {
       localStorage.removeItem("bst_phone");
       localStorage.removeItem("bst_token");
-      router.push("/gate");
-      return;
-    }
-    if (cust.status === "suspended" || cust.status === "store_disabled") {
-      localStorage.removeItem("bst_phone");
-      localStorage.removeItem("bst_token");
-      router.push("/gate");
+      setBlocked(true);
       return;
     }
     if (cust.status !== "active") {
@@ -88,6 +105,7 @@ export default function StorePage() {
       return;
     }
     setCustomer(cust);
+    statusPollRef.current = setInterval(checkStillAllowed, 5000);
 
     const [prodRes, msgRes, balRes] = await Promise.all([
       fetch("/api/products"),
@@ -258,6 +276,14 @@ export default function StorePage() {
   };
 
   if (loading) return <div style={{...S.screen,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:40,height:40,border:"3px solid #1E1E26",borderTopColor:"#C8962A",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>;
+
+  if (blocked) return (
+    <div style={{...S.screen,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"32px 20px"}}>
+      <div style={{width:80,height:80,borderRadius:"50%",background:"rgba(229,62,62,0.08)",border:"2px solid #E53E3E",display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,marginBottom:24}}>🚫</div>
+      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.02em",marginBottom:10}}>Account Shut</div>
+      <div style={{fontSize:14,color:"#5A5A70",maxWidth:280,lineHeight:1.7}}>Your access to this store has ended. Please contact the store owner if you believe this is a mistake.</div>
+    </div>
+  );
 
   // ── ORDERS VIEW ──────────────────────────────────────────────
   if (view === "orders") return (
