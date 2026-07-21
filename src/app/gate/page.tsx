@@ -86,7 +86,7 @@ function GateContent() {
         const existing = (await checkRes.json())?.[0];
         if (existing) {
           if (existing.status === "active") { router.push("/store"); return; }
-          if (existing.status === "suspended") { setStep("suspended"); return; }
+          if (existing.status === "suspended") { setStep("removed"); return; }
           if (existing.status === "store_disabled") { setStep("disabled"); return; }
           if (existing.status === "pending") { setCustomerId(existing.id); setStep("pending"); return; }
         }
